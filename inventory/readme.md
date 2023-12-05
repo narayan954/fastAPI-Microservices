@@ -2,6 +2,12 @@ instructions on gettings setup
 
 ## Usage
 
+### Creating a virtual environment
+
+```bash
+python -m venv venv
+```
+
 ### Activating the virtual environment
 
 ```bash
