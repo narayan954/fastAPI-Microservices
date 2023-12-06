@@ -41,6 +41,11 @@ def format(pk: str):
     }
 
 
+@app.get("/")
+def index():
+    return {"message": "Hello World"}
+
+
 @app.get("/products")
 def all():
     return [format(pk) for pk in Product.all_pks()]
