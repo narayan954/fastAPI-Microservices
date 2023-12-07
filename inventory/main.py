@@ -2,13 +2,14 @@ from redis_om import get_redis_connection, HashModel
 from fastapi import FastAPI
 from config import settings
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -20,6 +21,10 @@ redis = get_redis_connection(
     decode_responses=True,
 )
 
+class ProductIn(BaseModel):
+    name: str
+    price: float
+    quantity: int
 
 class Product(HashModel):
     name: str
@@ -52,8 +57,9 @@ def all():
 
 
 @app.post("/products")
-def create(product: Product):
-    return product.save()
+def create(product: ProductIn):
+    new_product = Product(**product.model_dump())
+    return new_product.save()
 
 
 @app.get("/products/{pk}")
