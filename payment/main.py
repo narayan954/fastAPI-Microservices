@@ -1,18 +1,21 @@
-from redis_om import get_redis_connection, HashModel
 from fastapi import FastAPI
-from config import settings
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.background import BackgroundTasks
+from redis_om import get_redis_connection, HashModel
+from starlette.requests import Request
+import requests, time
+from config import settings
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# This should be a different database
 redis = get_redis_connection(
     host=settings.host,
     port=settings.port,
@@ -21,24 +24,16 @@ redis = get_redis_connection(
 )
 
 
-class Product(HashModel):
-    name: str
+class Order(HashModel):
+    product_id: str
     price: float
+    fee: float
+    total: float
     quantity: int
+    status: str  # pending, completed, refunded
 
     class Meta:
         database = redis
-
-
-def format(pk: str):
-    product = Product.get(pk)
-
-    return {
-        "id": product.pk,
-        "name": product.name,
-        "price": product.price,
-        "quantity": product.quantity,
-    }
 
 
 @app.get("/")
@@ -46,21 +41,36 @@ def index():
     return {"message": "Hello World"}
 
 
-@app.get("/products")
-def all():
-    return [format(pk) for pk in Product.all_pks()]
-
-
-@app.post("/products")
-def create(product: Product):
-    return product.save()
-
-
-@app.get("/products/{pk}")
+@app.get("/orders/{pk}")
 def get(pk: str):
-    return Product.get(pk)
+    return Order.get(pk)
 
 
-@app.delete("/products/{pk}")
-def delete(pk: str):
-    return Product.delete(pk)
+@app.post("/orders")
+async def create(request: Request, background_tasks: BackgroundTasks):  # id, quantity
+    body = await request.json()
+
+    req = requests.get("http://localhost:8000/products/%s" % body["id"])
+    product = req.json()
+
+    order = Order(
+        product_id=body["id"],
+        price=product["price"],
+        fee=0.2 * product["price"],
+        total=1.2 * product["price"],
+        quantity=body["quantity"],
+        status="pending",
+    )
+    print(order.dict())
+    order.save()
+
+    background_tasks.add_task(order_completed, order)
+
+    return order
+
+
+def order_completed(order: Order):
+    time.sleep(5)
+    order.status = "completed"
+    order.save()
+    redis.xadd("order_completed", order.dict(), "*")
