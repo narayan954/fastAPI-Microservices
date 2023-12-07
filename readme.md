@@ -16,6 +16,10 @@ The application uses React Router for navigation between these components.
 
 To run the frontend, use the following commands:
 
+```sh
+npm install
+npm run dev
+```
 
 ## Backend
 
@@ -26,6 +30,13 @@ The inventory service manages products. It provides endpoints to create, retriev
 The payment service manages orders. It provides endpoints to create and retrieve orders. When an order is created, it is initially marked as "pending". A background task then marks the order as "completed".
 
 To run each backend service, you need to create a virtual environment, activate it, install the dependencies, and then run the application. The commands are as follows:
+
+```sh
+python -m venv venv
+source venv/bin/activate # Linux
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
 ## Git Ignore
 
@@ -38,4 +49,3 @@ The project uses ESLint for linting the JavaScript code. The configuration for E
 ## Note
 
 Please ensure that you have Node.js, Python, and Redis installed on your machine before running the project. Also, update the .env file with the correct Redis connection details.
-
